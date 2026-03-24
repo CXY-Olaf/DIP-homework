@@ -2,6 +2,8 @@ import cv2
 import gradio as gr
 import numpy as np
 
+from launch_utils import launch_demo
+
 
 def to_3x3(affine_matrix):
     return np.vstack([affine_matrix, [0, 0, 1]])
@@ -110,4 +112,4 @@ def interactive_transform():
 
 
 if __name__ == "__main__":
-    interactive_transform().launch()
+    launch_demo(interactive_transform(), port=7860)

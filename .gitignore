@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+gradio.out
+gradio.err
+hw2/02_DIPwithPyTorch/gradio.out
+hw2/02_DIPwithPyTorch/gradio.err
+
+hw2/02_DIPwithPyTorch/Pix2Pix/datasets/
+hw2/02_DIPwithPyTorch/Pix2Pix/train_list.txt
+hw2/02_DIPwithPyTorch/Pix2Pix/val_list.txt
+hw2/02_DIPwithPyTorch/Pix2Pix/train_results/
+hw2/02_DIPwithPyTorch/Pix2Pix/val_results/
+hw2/02_DIPwithPyTorch/Pix2Pix/checkpoints/

@@ -1,0 +1,11 @@
+{
+  "mean_reprojection_error": 21.47781753540039,
+  "median_reprojection_error": 13.00675106048584,
+  "max_reprojection_error": 821.6137084960938,
+  "visible_observations": 805089,
+  "best_training_loss": 24.329452514648438,
+  "focal": 999.5570678710938,
+  "num_iterations": 300,
+  "freeze_points_iters": 80,
+  "elapsed_seconds": 9.535379648208618
+}

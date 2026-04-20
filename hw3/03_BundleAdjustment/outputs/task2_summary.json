@@ -1,0 +1,15 @@
+{
+  "staging_dataset_path": "D:\\\\DGP\\\\hw3\\\\data",
+  "staging_sparse_model_path": "D:\\\\DGP\\\\hw3\\\\data\\\\colmap\\\\sparse\\\\0",
+  "submission_sparse_model_path": "data/colmap/sparse/0",
+  "submission_dense_fused_path": "data/colmap/dense/fused.ply",
+  "registered_images": 50,
+  "sparse_points3d": 1693,
+  "observations": 13592,
+  "mean_track_length": 8.028352,
+  "mean_observations_per_image": 271.84,
+  "mean_reprojection_error_px": 0.65777,
+  "dense_status": "completed",
+  "dense_fused_points": 109574,
+  "cuda_device": "NVIDIA GeForce RTX 4060 Laptop GPU"
+}

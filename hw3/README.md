@@ -189,6 +189,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File D:\DGP\hw3\run_colmap.ps1 `
 - 三维点云整体形状
 - 若干视角下的重投影对齐效果
 
+| Loss 曲线 | 三维点云预览 |
+| --- | --- |
+| ![Task1 Loss](03_BundleAdjustment/outputs/final_run/loss_curve.png) | ![Task1 Point Cloud](03_BundleAdjustment/outputs/final_run/point_cloud_preview.png) |
+
+| 重投影结果 1 | 重投影结果 2 |
+| --- | --- |
+| ![Task1 Reprojection 000](03_BundleAdjustment/outputs/final_run/reprojection/view_000_overlay.png) | ![Task1 Reprojection 025](03_BundleAdjustment/outputs/final_run/reprojection/view_025_overlay.png) |
+
 ### 2. Task 2：COLMAP 稀疏与稠密点云
 
 建议查看以下结果图：
@@ -200,6 +208,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File D:\DGP\hw3\run_colmap.ps1 `
 
 - 稀疏点云反映了 COLMAP 在特征匹配与 BA 后恢复出的稳定结构
 - 稠密点云反映了 `patch_match_stereo + stereo_fusion` 之后的更细致表面采样结果
+
+| 稀疏点云预览 | 稠密点云预览 |
+| --- | --- |
+| ![Task2 Sparse Preview](03_BundleAdjustment/outputs/task2_sparse_preview.png) | ![Task2 Dense Preview](03_BundleAdjustment/outputs/task2_dense_preview.png) |
 
 ---
 

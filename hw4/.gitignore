@@ -5,11 +5,18 @@ data/*/sparse/0/
 
 # Task 2 heavy outputs (saved checkpoints can be big; keep at most the latest if needed)
 data/*/checkpoints/checkpoint_*.pt
-data/*/checkpoints/debug_images/
+data/*/checkpoints/debug_images/*
+# …but keep a few representative epochs that the README links to.
+!data/*/checkpoints/debug_images/epoch_0000.png
+!data/*/checkpoints/debug_images/epoch_0020.png
+!data/*/checkpoints/debug_images/epoch_0100.png
+!data/*/checkpoints/debug_images/epoch_0199.png
 data/*/checkpoints/*.mp4
 
-# Generated reprojection visualizations (re-runnable by Task 1 debug script)
-data/*/projections/
+# Generated reprojection visualizations (re-runnable by Task 1 debug script).
+# Keep one representative example to embed in the README.
+data/*/projections/*
+!data/*/projections/r_0.png
 
 # Python
 __pycache__/

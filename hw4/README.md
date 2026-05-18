@@ -141,7 +141,7 @@ covs2D = torch.bmm(J_proj, torch.bmm(covs_cam, J_proj.permute(0, 2, 1)))  # (N, 
 
 **TODO #3 — 2D Gaussian evaluation per pixel** (`gaussian_renderer.py:88-105`, in `compute_gaussian_values`).
 
-$$f(\mathbf{x}) = \frac{1}{2\pi\sqrt{|\Sigma|}} \exp\!\left(-\tfrac{1}{2}(\mathbf{x}-\boldsymbol\mu)^T \Sigma^{-1}(\mathbf{x}-\boldsymbol\mu)\right)$$
+$$f(\mathbf{x}) = \frac{1}{2\pi\sqrt{|\Sigma|}} \exp\!\left(-\tfrac{1}{2}(\mathbf{x}-\boldsymbol{\mu})^T \Sigma^{-1}(\mathbf{x}-\boldsymbol{\mu})\right)$$
 
 For a 2×2 Σ, the closed-form inverse is faster and more stable than `torch.linalg.inv`. The `det.clamp(min=1e-10)` is essential: as covariances optimize toward degeneracy (thin ellipses), determinants approach 0 and the loss otherwise NaN-explodes.
 
@@ -277,11 +277,11 @@ Each checkpoint is a dict with `model_state_dict`, `optimizer_state_dict`, and `
 
 | Epoch 0 | Epoch 20 |
 | --- | --- |
-| ![](data/chair/checkpoints/debug_images/epoch_0000.png) | ![](data/chair/checkpoints/debug_images/epoch_0020.png) |
+| ![Ours render at epoch 0 — 4 views, blurry coloured blobs](data/chair/checkpoints/debug_images/epoch_0000.png) | ![Ours render at epoch 20 — chair silhouette emerging](data/chair/checkpoints/debug_images/epoch_0020.png) |
 
 | Epoch 100 | Epoch 199 |
 | --- | --- |
-| ![](data/chair/checkpoints/debug_images/epoch_0100.png) | ![](data/chair/checkpoints/debug_images/epoch_0199.png) |
+| ![Ours render at epoch 100 — backrest pattern sharpening](data/chair/checkpoints/debug_images/epoch_0100.png) | ![Ours render at epoch 199 — final state, thin geometry still missing](data/chair/checkpoints/debug_images/epoch_0199.png) |
 
 Qualitative read:
 - Epoch 0 — blurry coloured blobs roughly *where* the chair is, confirming SfM-initialized point positions are useful.
@@ -320,8 +320,8 @@ Ran [graphdeco-inria/gaussian-splatting](https://github.com/graphdeco-inria/gaus
 
 | Official render | Ground truth |
 | --- | --- |
-| ![](data/chair/official_3dgs_compare/official_render_view0.png) | ![](data/chair/official_3dgs_compare/official_gt_view0.png) |
-| ![](data/chair/official_3dgs_compare/official_render_view10.png) | ![](data/chair/official_3dgs_compare/official_gt_view10.png) |
+| ![Official 3DGS render, sorted-train view 0](data/chair/official_3dgs_compare/official_render_view0.png) | ![Ground truth for sorted-train view 0](data/chair/official_3dgs_compare/official_gt_view0.png) |
+| ![Official 3DGS render, sorted-train view 10](data/chair/official_3dgs_compare/official_render_view10.png) | ![Ground truth for sorted-train view 10](data/chair/official_3dgs_compare/official_gt_view10.png) |
 
 The official render is essentially indistinguishable from GT at this iteration count — the fabric pattern, gold-leaf piping, even the wood frame highlights are all recovered.
 

@@ -167,7 +167,7 @@ weights = alphas * T                                    # (N, H, W)
 | --- | --- |
 | COLMAP SfM (Task 1, 100 images, CPU) | ≈ 41 s |
 | FPS downsample 13629 → 3000 | < 1 s |
-| 3DGS training (200 epochs × 100 iters @ 110 ms) | **≈ 22 min** |
+| 3DGS training (200 epochs × 100 iters, ~234 ms/iter wall) | **≈ 78 min** |
 | Peak GPU memory | 2.3 GB |
 
 ---
@@ -248,7 +248,7 @@ Each checkpoint is a dict with `model_state_dict`, `optimizer_state_dict`, and `
 | Train-view mean **PSNR** | **18.38 dB** |
 | Train-view mean L1 | 0.0421 |
 | Loss start → end | 0.0952 → 0.0421 |
-| Wall-clock | 22 min |
+| Wall-clock | 78 min |
 | Peak VRAM | 2.3 GB |
 
 **Training loss curve** (`data/chair/checkpoints/loss_curve.png`):
@@ -287,7 +287,7 @@ Ran [graphdeco-inria/gaussian-splatting](https://github.com/graphdeco-inria/gaus
 | **Test PSNR** | — *(no held-out set)* | **30.51 dB** | Tile rasterizer + densification + SH together |
 | **Train PSNR** | 18.38 dB (3 000 G, 100×100, 200 ep) | **30.60 dB** (361 k G, 800×800, 7 000 it) | Densification grew Gaussians 27×; SH adds view-dependent shading |
 | **Train L1** | 0.0421 | **0.00663** | ~6× lower error |
-| **Wall-clock training** | 22 min (CPU dataloader bound) | **5 min** | Tile-based CUDA rasterizer evaluates only Gaussians whose 2D footprint intersects each 16×16 tile, with early termination once transmittance ≈ 0 |
+| **Wall-clock training** | 78 min (DataLoader + per-epoch debug grid overhead) | **5 min** | Tile-based CUDA rasterizer evaluates only Gaussians whose 2D footprint intersects each 16×16 tile, with early termination once transmittance ≈ 0 |
 | **Final Gaussian count** | 3 000 (fixed) | **361 543** (auto-grown from 13 629 init) | We don't implement densify / clone / split / prune |
 | **Colour model** | view-independent RGB | SH degree 3 (48 coeffs / G) | We can't represent specular or view-dependent shading |
 | **Resolution** | 100×100 (downsampled 8×) | 800×800 (full) | We downsample to fit O(N·H·W) memory; official streams per-tile |
@@ -306,6 +306,29 @@ Ran [graphdeco-inria/gaussian-splatting](https://github.com/graphdeco-inria/gaus
 | ![](data/chair/official_3dgs_compare/official_render_view10.png) | ![](data/chair/official_3dgs_compare/official_gt_view10.png) |
 
 The official render is essentially indistinguishable from GT at this iteration count — the fabric pattern, gold-leaf piping, even the wood frame highlights are all recovered.
+
+#### Reproducing Task 3
+
+```bash
+# 1. Clone & build CUDA extensions (uses system CUDA 12.5 + MSVC 14.43)
+git clone --recursive https://github.com/graphdeco-inria/gaussian-splatting D:/tools/gaussian-splatting
+$env:CUDA_HOME = "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.5"
+$env:PATH      = "$env:CUDA_HOME\bin;$env:PATH"
+conda activate myenv
+pip install --no-build-isolation D:/tools/gaussian-splatting/submodules/diff-gaussian-rasterization
+pip install --no-build-isolation D:/tools/gaussian-splatting/submodules/simple-knn
+pip install --no-build-isolation D:/tools/gaussian-splatting/submodules/fused-ssim
+pip install plyfile
+
+# 2. Patch train.py: replace the `if viewpoint_cam.alpha_mask is not None: image *= alpha_mask`
+#    block with `pass` (see "🔧 One patch needed for fair eval" above).
+
+# 3. Train + render
+cd D:/tools/gaussian-splatting
+python train.py -s <abs path>/my-homework/hw4/data/chair \
+                -m output/chair  --iterations 7000  --eval
+python render.py -m output/chair
+```
 
 #### Where the ~12 dB PSNR gap comes from
 

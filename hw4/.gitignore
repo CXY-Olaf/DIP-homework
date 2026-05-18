@@ -1,0 +1,23 @@
+# COLMAP intermediates / Task 1 outputs
+data/*/database.db
+data/*/database.db-*
+data/*/sparse/0/
+
+# Task 2 heavy outputs (saved checkpoints can be big; keep at most the latest if needed)
+data/*/checkpoints/checkpoint_*.pt
+data/*/checkpoints/debug_images/
+data/*/checkpoints/*.mp4
+
+# Generated reprojection visualizations (re-runnable by Task 1 debug script)
+data/*/projections/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

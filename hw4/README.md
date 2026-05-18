@@ -99,7 +99,7 @@ python train.py --colmap_dir data/chair \
 
 Each is one short paragraph + 1-3 lines of math + the actual code. Concrete file:line links are in parentheses.
 
-**TODO #1 — 3D covariance** (`gaussian_model.py:113`).
+**TODO #1 — 3D covariance** (`gaussian_model.py:113-117`, in `compute_covariance`).
 
 To keep Σ symmetric positive semi-definite under unconstrained optimization, paper Eq. (6) parameterizes it via a rotation R (from a unit quaternion) and a diagonal scale S = diag(exp(scales)):
 
@@ -110,7 +110,7 @@ RS     = torch.bmm(R, S)                           # (N, 3, 3)
 Covs3d = torch.bmm(RS, RS.transpose(1, 2))         # symmetric PSD
 ```
 
-**TODO #2 — perspective projection + 2D covariance** (`gaussian_renderer.py:48`).
+**TODO #2 — perspective projection + 2D covariance** (`gaussian_renderer.py:46-68`, in `compute_projection`).
 
 The projection (u, v) = (fx · X/Z + cx, fy · Y/Z + cy) has Jacobian (Eq. 5):
 
@@ -131,7 +131,7 @@ covs_cam = R.unsqueeze(0) @ covs3d @ R.T.unsqueeze(0)     # (N, 3, 3)
 covs2D   = torch.bmm(J_proj, torch.bmm(covs_cam, J_proj.permute(0, 2, 1)))
 ```
 
-**TODO #3 — 2D Gaussian evaluation per pixel** (`gaussian_renderer.py:78`).
+**TODO #3 — 2D Gaussian evaluation per pixel** (`gaussian_renderer.py:88-105`, in `compute_gaussian_values`).
 
 $$f(\mathbf{x}) = \frac{1}{2\pi\sqrt{|\Sigma|}} \exp\!\left(-\tfrac{1}{2}(\mathbf{x}-\boldsymbol\mu)^T \Sigma^{-1}(\mathbf{x}-\boldsymbol\mu)\right)$$
 
@@ -145,9 +145,9 @@ quad = inv_a * dx0 * dx0 + 2.0 * inv_b * dx0 * dx1 + inv_d * dx1 * dx1
 gaussian = (1.0 / (2.0 * torch.pi * torch.sqrt(det))).view(N,1,1) * torch.exp(-0.5 * quad)
 ```
 
-**TODO #4 — α-blending** (`gaussian_renderer.py:121`).
+**TODO #4 — α-blending** (`gaussian_renderer.py:146-153`, end of `forward`).
 
-For Gaussians sorted near→far at line 102, paper Eq. (1-3) gives
+For Gaussians sorted near→far at `gaussian_renderer.py:128` (`argsort(depths, descending=False)`), paper Eq. (1-3) gives
 
 $$w_i(\mathbf{x}) = \alpha_i \cdot T_i, \qquad T_i = \prod_{j<i}(1-\alpha_j)$$
 
@@ -309,25 +309,26 @@ The official render is essentially indistinguishable from GT at this iteration c
 
 #### Reproducing Task 3
 
-```bash
+```powershell
 # 1. Clone & build CUDA extensions (uses system CUDA 12.5 + MSVC 14.43)
-git clone --recursive https://github.com/graphdeco-inria/gaussian-splatting D:/tools/gaussian-splatting
+git clone --recursive https://github.com/graphdeco-inria/gaussian-splatting D:\tools\gaussian-splatting
 $env:CUDA_HOME = "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.5"
 $env:PATH      = "$env:CUDA_HOME\bin;$env:PATH"
 conda activate myenv
-pip install --no-build-isolation D:/tools/gaussian-splatting/submodules/diff-gaussian-rasterization
-pip install --no-build-isolation D:/tools/gaussian-splatting/submodules/simple-knn
-pip install --no-build-isolation D:/tools/gaussian-splatting/submodules/fused-ssim
+pip install --no-build-isolation D:\tools\gaussian-splatting\submodules\diff-gaussian-rasterization
+pip install --no-build-isolation D:\tools\gaussian-splatting\submodules\simple-knn
+pip install --no-build-isolation D:\tools\gaussian-splatting\submodules\fused-ssim
 pip install plyfile
 
 # 2. Patch train.py: replace the `if viewpoint_cam.alpha_mask is not None: image *= alpha_mask`
-#    block with `pass` (see "🔧 One patch needed for fair eval" above).
+#    block (around lines 114–116) with `pass` so the loss covers the full image,
+#    not just the chair silhouette. See the 🔧 callout above for the rationale.
 
-# 3. Train + render
-cd D:/tools/gaussian-splatting
-python train.py -s <abs path>/my-homework/hw4/data/chair \
-                -m output/chair  --iterations 7000  --eval
-python render.py -m output/chair
+# 3. Train + render (5 min on RTX 4060 Laptop at 7000 iter)
+Set-Location D:\tools\gaussian-splatting
+python train.py -s <abs path>\my-homework\hw4\data\chair `
+                -m output\chair  --iterations 7000  --eval
+python render.py -m output\chair
 ```
 
 #### Where the ~12 dB PSNR gap comes from
@@ -359,11 +360,20 @@ my-homework/hw4/
 ├── debug_mvs_by_projecting_pts.py   (unchanged)
 ├── render_3dgs_mv.py                (unchanged)
 ├── train.py                         (unchanged)
-└── data/chair/
-    ├── images/        ← 100 GT multi-view images (provided)
-    ├── sparse/0_text/ ← Task 1 outputs (gitignored)
-    ├── projections/   ← Task 1 reprojection overlays (gitignored)
-    └── checkpoints/   ← Task 2 outputs: ckpts, debug grid PNGs, MP4, loss curve (gitignored)
+└── data/
+    ├── chair/
+    │   ├── images/                   ← 100 GT multi-view images (provided)
+    │   ├── sparse/0_text/            ← Task 1: COLMAP text export (5 files, all tracked)
+    │   │                                — the parallel binary `sparse/0/` + `database.db`
+    │   │                                  are gitignored as they are reproducible
+    │   ├── projections/r_0.png       ← Task 1 reprojection overlay; remaining 99 gitignored
+    │   ├── checkpoints/
+    │   │   ├── loss_curve.png        ← Task 2 loss curve (tracked)
+    │   │   └── debug_images/         ← 4 representative epoch grids tracked (epochs
+    │   │                                0/20/100/199); 196 others + ckpts.pt + MP4 ignored
+    │   └── official_3dgs_compare/    ← Task 3: 2 renders + 2 GTs from official 3DGS
+    └── lego/images/                  ← 100 GT views for the alternative scene (unused
+                                         in this report; switch `--data_dir` to use it)
 ```
 
 ---

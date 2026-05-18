@@ -103,9 +103,7 @@ python train.py --colmap_dir data/chair \
 
 为了让 Σ 在无约束优化下始终半正定,paper 公式 (6) 用旋转 R(单位四元数生成)和对角缩放 S = diag(exp(scales)) 参数化:
 
-$$
-\Sigma = R S S^{T} R^{T}
-$$
+![Σ = R S Sᵀ Rᵀ](assets/formulas/todo1_covariance.png)
 
 ```python
 RS = torch.bmm(R, S)                          # (N, 3, 3)
@@ -116,12 +114,7 @@ Covs3d = torch.bmm(RS, RS.transpose(1, 2))    # (N, 3, 3), symmetric PSD
 
 投影 (u, v) = (fx · X/Z + cx, fy · Y/Z + cy) 的雅可比(公式 5):
 
-$$
-J = \begin{bmatrix}
-f_x/Z & 0 & -f_x X / Z^{2} \\
-0 & f_y/Z & -f_y Y / Z^{2}
-\end{bmatrix}
-$$
+![J = 2×3 perspective projection Jacobian](assets/formulas/todo2_jacobian.png)
 
 平移不影响二阶矩,所以世界系到相机系的协方差变换是 `Σ_cam = R · Σ_w · Rᵀ`,然后再投到 2D:`Σ_2D = J · Σ_cam · Jᵀ`。
 
@@ -148,9 +141,7 @@ covs2D = torch.bmm(J_proj, torch.bmm(covs_cam, J_proj.permute(0, 2, 1)))  # (N, 
 
 **TODO #3 — 每像素 2D 高斯响应**(`gaussian_renderer.py:88-105`,函数 `compute_gaussian_values`)。
 
-$$
-f(\mathbf{x}) = \frac{1}{2\pi\sqrt{|\Sigma|}} \exp\left(-\frac{1}{2}(\mathbf{x}-\boldsymbol{\mu})^T \Sigma^{-1} (\mathbf{x}-\boldsymbol{\mu})\right)
-$$
+![f(x) = (1/(2π√|Σ|)) · exp(-½ (x-μ)ᵀ Σ⁻¹ (x-μ))](assets/formulas/todo3_gaussian.png)
 
 2×2 矩阵走闭式求逆比 `torch.linalg.inv` 更快也更稳。`det.clamp(min=1e-10)` 是关键:协方差被优化得越来越扁(瘦椭圆)时,行列式接近 0,不 clamp 直接 NaN 爆掉。
 
@@ -176,9 +167,7 @@ gaussian = norm * torch.exp(-0.5 * quad)          # (N, H, W)
 
 第 i 个高斯(已经按深度近→远在 `gaussian_renderer.py:128` 的 `argsort(depths, descending=False)` 排好)对像素的贡献权重 = 自己的 α 乘前面所有人的"剩余透射率",对应 paper 公式 (1-3):
 
-$$
-w_i(\mathbf{x}) = \alpha_i \cdot T_i, \qquad T_i = \prod_{j<i}(1-\alpha_j)
-$$
+![w_i(x) = α_i · T_i, with T_i = ∏_{j<i}(1 - α_j)](assets/formulas/todo4_alpha.png)
 
 注意 T 是 **exclusive**(T₀ = 1,不含自身),用 inclusive `cumprod` 移一位实现:
 

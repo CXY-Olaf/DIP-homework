@@ -61,7 +61,7 @@ def read_images_text(path):
     images = {}
     with open(path, 'r') as f:
         lines = f.readlines()
-    
+
     # First collect all images
     for i in range(0, len(lines), 2):
         line = lines[i]
@@ -73,19 +73,19 @@ def read_images_text(path):
         tvec = np.array([float(x) for x in data[5:8]])
         camera_id = int(data[8])
         name = data[9]
-        
+
         R = qvec2rotmat(qvec)
-        
+
         images[image_id] = {
             'R': R,
             't': tvec.reshape(3,1),
             'camera_id': camera_id,
             'name': name
         }
-    
+
     # Sort images by name and create new ordered dictionary
     sorted_images = dict(natsorted(images.items(), key=lambda x: x[1]['name']))
-    
+
     return sorted_images
 
 def read_cameras_text(path):
@@ -133,13 +133,13 @@ class ColmapDataset(Dataset):
         images_dir = os.path.join(data_path, "images")
 
         self.downsample_factor = downsample_factor
-        
+
         # Load COLMAP data
         self.cameras = read_cameras_text(os.path.join(sparse_path, "cameras.txt"))
         self.images = read_images_text(os.path.join(sparse_path, "images.txt"))
         points3D = read_points3D_text(os.path.join(sparse_path, "points3D.txt"))
 
-        
+
         # Convert points3D to torch.tensor
         self.points3D_xyz = torch.as_tensor(np.array([p['xyz'] for p in points3D.values()])).float()
         self.points3D_rgb = torch.as_tensor(np.array([p['rgb'] for p in points3D.values()])).float()
@@ -151,11 +151,11 @@ class ColmapDataset(Dataset):
             idx = _farthest_point_sample(self.points3D_xyz, maximum_pts_num)
             self.points3D_xyz = self.points3D_xyz[idx]
             self.points3D_rgb = self.points3D_rgb[idx]
-        
+
         # Get image paths and convert camera parameters
         self.image_paths = []
         self.camera_data = []
-        
+
         for image_id, image_data in self.images.items():
             image_path = os.path.join(images_dir, image_data['name'])
             if os.path.exists(image_path):
@@ -167,10 +167,10 @@ class ColmapDataset(Dataset):
                     'R': image_data['R'],
                     't': image_data['t']
                 })
-    
+
     def __len__(self):
         return len(self.image_paths)
-    
+
     def __getitem__(self, idx):
         # Load image
         image_path = self.image_paths[idx]
@@ -178,13 +178,13 @@ class ColmapDataset(Dataset):
         image = cv2.resize(image, (0,0), fx=1./self.downsample_factor, fy=1./self.downsample_factor)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         image = torch.FloatTensor(image) / 255.0
-        
+
         # Get camera parameters
         camera_data = self.camera_data[idx]
         K = torch.FloatTensor(camera_data['K'])
         R = torch.FloatTensor(camera_data['R'])
         t = torch.FloatTensor(camera_data['t'])
-        
+
         return {
             'image': image,
             'K': K,

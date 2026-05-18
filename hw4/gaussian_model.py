@@ -20,14 +20,14 @@ class GaussianModel(nn.Module):
     def __init__(self, points3D_xyz: torch.Tensor, points3D_rgb: torch.Tensor):
         """
         Initialize 3D Gaussian Splatting model
-        
+
         Args:
             points3D_xyz: (N, 3) tensor of point positions
             points3D_rgb: (N, 3) tensor of RGB colors in [0, 255]
         """
         super().__init__()
         self.n_points = len(points3D_xyz)
-        
+
         # Initialize learnable parameters
         self._init_positions(points3D_xyz)
         self._init_rotations()
@@ -60,7 +60,7 @@ class GaussianModel(nn.Module):
         mean_dists = knn_d.mean(dim=1, keepdim=True) * 2.
         mean_dists = mean_dists.clamp(0.2*torch.median(mean_dists), 3.0*torch.median(mean_dists))  # Prevent infinite scales
         print('init_scales', torch.min(mean_dists), torch.max(mean_dists))
-        
+
         log_scales = torch.log(mean_dists)
         self.scales = nn.Parameter(log_scales.repeat(1, 3))
 
@@ -83,7 +83,7 @@ class GaussianModel(nn.Module):
         # Normalize quaternions to unit length
         q = F.normalize(self.rotations, dim=-1)
         w, x, y, z = q.unbind(-1)
-        
+
         # Build rotation matrix elements
         R00 = 1 - 2*y*y - 2*z*z
         R01 = 2*x*y - 2*w*z
@@ -94,7 +94,7 @@ class GaussianModel(nn.Module):
         R20 = 2*x*z - 2*w*y
         R21 = 2*y*z + 2*w*x
         R22 = 1 - 2*x*x - 2*y*y
-        
+
         return torch.stack([
             R00, R01, R02,
             R10, R11, R12,
@@ -105,11 +105,11 @@ class GaussianModel(nn.Module):
         """Compute covariance matrices for all gaussians"""
         # Get rotation matrices
         R = self._compute_rotation_matrices()
-        
+
         # Convert scales from log space and create diagonal matrices
         scales = torch.exp(self.scales)
         S = torch.diag_embed(scales)
-        
+
         # Compute covariance: Σ = R S Sᵀ Rᵀ  (paper Eq. 6).
         # S is diagonal, so S·Sᵀ is also diagonal with entries scale_i².
         RS = torch.bmm(R, S)                          # (N, 3, 3)

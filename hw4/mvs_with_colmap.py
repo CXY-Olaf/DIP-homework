@@ -32,4 +32,3 @@ if __name__ == '__main__':
 
     print("COLMAP multi-view stereo pipeline completed successfully!")
     print("Sparse 3D reconstruction saved in:", os.path.join(data_dir, 'sparse', '0_text'))
-    

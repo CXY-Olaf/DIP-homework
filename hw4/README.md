@@ -106,8 +106,8 @@ To keep Σ symmetric positive semi-definite under unconstrained optimization, pa
 $$\Sigma = R\,S\,S^{T}\,R^{T}$$
 
 ```python
-RS     = torch.bmm(R, S)                           # (N, 3, 3)
-Covs3d = torch.bmm(RS, RS.transpose(1, 2))         # symmetric PSD
+RS = torch.bmm(R, S)                          # (N, 3, 3)
+Covs3d = torch.bmm(RS, RS.transpose(1, 2))    # (N, 3, 3), symmetric PSD
 ```
 
 **TODO #2 — perspective projection + 2D covariance** (`gaussian_renderer.py:46-68`, in `compute_projection`).
@@ -119,16 +119,24 @@ $$J = \begin{bmatrix} f_x/Z & 0 & -f_x X / Z^{2} \\ 0 & f_y/Z & -f_y Y / Z^{2} \
 Translation does not affect second-order moments, so the world-to-camera covariance transform is `Σ_cam = R · Σ_w · Rᵀ`, then `Σ_2D = J · Σ_cam · Jᵀ`.
 
 ```python
+J_proj = torch.zeros((N, 2, 3), device=means3D.device)
 fx, fy = K[0, 0], K[1, 1]
-X, Y, Z = cam_points[:, 0], cam_points[:, 1], depths      # camera-space coords
-inv_Z, inv_Z2 = 1.0 / Z, 1.0 / (Z * Z)
-J_proj[:, 0, 0] =  fx * inv_Z
+X = cam_points[:, 0]
+Y = cam_points[:, 1]
+Z = depths                                       # (N,)
+inv_Z = 1.0 / Z
+inv_Z2 = inv_Z * inv_Z
+J_proj[:, 0, 0] = fx * inv_Z
 J_proj[:, 0, 2] = -fx * X * inv_Z2
-J_proj[:, 1, 1] =  fy * inv_Z
+J_proj[:, 1, 1] = fy * inv_Z
 J_proj[:, 1, 2] = -fy * Y * inv_Z2
 
-covs_cam = R.unsqueeze(0) @ covs3d @ R.T.unsqueeze(0)     # (N, 3, 3)
-covs2D   = torch.bmm(J_proj, torch.bmm(covs_cam, J_proj.permute(0, 2, 1)))
+# Transform covariance from world to camera: Σ_cam = R Σ_w Rᵀ
+# (only the rotation part of [R|t] affects second-order moments).
+covs_cam = R.unsqueeze(0) @ covs3d @ R.T.unsqueeze(0)  # (N, 3, 3)
+
+# Project to 2D
+covs2D = torch.bmm(J_proj, torch.bmm(covs_cam, J_proj.permute(0, 2, 1)))  # (N, 2, 2)
 ```
 
 **TODO #3 — 2D Gaussian evaluation per pixel** (`gaussian_renderer.py:88-105`, in `compute_gaussian_values`).
@@ -138,11 +146,21 @@ $$f(\mathbf{x}) = \frac{1}{2\pi\sqrt{|\Sigma|}} \exp\!\left(-\tfrac{1}{2}(\mathb
 For a 2×2 Σ, the closed-form inverse is faster and more stable than `torch.linalg.inv`. The `det.clamp(min=1e-10)` is essential: as covariances optimize toward degeneracy (thin ellipses), determinants approach 0 and the loss otherwise NaN-explodes.
 
 ```python
-a, b, d = covs2D[:, 0, 0], covs2D[:, 0, 1], covs2D[:, 1, 1]
-det = (a * d - b * b).clamp(min=1e-10)
-inv_a, inv_b, inv_d = ( d / det).view(N,1,1), (-b / det).view(N,1,1), ( a / det).view(N,1,1)
+a = covs2D[:, 0, 0]
+b = covs2D[:, 0, 1]
+d = covs2D[:, 1, 1]
+det = (a * d - b * b).clamp(min=1e-10)            # (N,) — avoid NaN on near-degenerate covs
+inv_a = ( d / det).view(N, 1, 1)
+inv_b = (-b / det).view(N, 1, 1)
+inv_d = ( a / det).view(N, 1, 1)
+
+dx0 = dx[..., 0]                                  # (N, H, W)
+dx1 = dx[..., 1]
+# Quadratic form (x-μ)ᵀ Σ⁻¹ (x-μ); cross term doubled by symmetry.
 quad = inv_a * dx0 * dx0 + 2.0 * inv_b * dx0 * dx1 + inv_d * dx1 * dx1
-gaussian = (1.0 / (2.0 * torch.pi * torch.sqrt(det))).view(N,1,1) * torch.exp(-0.5 * quad)
+
+norm = (1.0 / (2.0 * torch.pi * torch.sqrt(det))).view(N, 1, 1)
+gaussian = norm * torch.exp(-0.5 * quad)          # (N, H, W)
 ```
 
 **TODO #4 — α-blending** (`gaussian_renderer.py:146-153`, end of `forward`).
@@ -155,7 +173,7 @@ Note T is **exclusive** (T₀ = 1, does not include self), implemented by shifti
 
 ```python
 one_minus_alpha = 1.0 - alphas                          # (N, H, W)
-trans_incl = torch.cumprod(one_minus_alpha, dim=0)      # inclusive transmittance
+trans_incl = torch.cumprod(one_minus_alpha, dim=0)      # inclusive
 T = torch.cat([torch.ones_like(trans_incl[:1]),
                trans_incl[:-1]], dim=0)                 # exclusive shift
 weights = alphas * T                                    # (N, H, W)

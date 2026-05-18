@@ -114,7 +114,7 @@ Covs3d = torch.bmm(RS, RS.transpose(1, 2))    # (N, 3, 3), symmetric PSD
 
 The projection (u, v) = (fx · X/Z + cx, fy · Y/Z + cy) has Jacobian (Eq. 5):
 
-$$J = \begin{bmatrix} f_x/Z & 0 & -f_x X / Z^{2} \\ 0 & f_y/Z & -f_y Y / Z^{2} \end{bmatrix}$$
+$$J = \begin{bmatrix} f_x/Z & 0 & -f_x X / Z^{2} \\\\ 0 & f_y/Z & -f_y Y / Z^{2} \end{bmatrix}$$
 
 Translation does not affect second-order moments, so the world-to-camera covariance transform is `Σ_cam = R · Σ_w · Rᵀ`, then `Σ_2D = J · Σ_cam · Jᵀ`.
 
